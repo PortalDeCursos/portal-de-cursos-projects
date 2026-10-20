@@ -2,6 +2,7 @@ CREATE TABLE projetos (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     curso_id BIGINT NOT NULL,
     orientador_id BIGINT NOT NULL,
+    autor_projeto_id BIGINT NOT NULL,
     nome VARCHAR(255) NOT NULL UNIQUE,
     descricao TEXT NOT NULL,
     tipo_projeto VARCHAR(30) NOT NULL,

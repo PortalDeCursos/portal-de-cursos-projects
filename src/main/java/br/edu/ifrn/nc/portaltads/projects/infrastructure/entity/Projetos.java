@@ -26,6 +26,9 @@ public class Projetos {
     @Column(name = "orientador_id")
     private Long orientadorId;
 
+    @Column(name = "autor_projeto_id")
+    private Long autorProjetoId;
+
     @Column(name = "nome")
     private String nome;
 
@@ -41,5 +44,5 @@ public class Projetos {
     private StatusProjeto statusProjeto;
 
     @Column(name = "arquivo_pdf")
-    private String arquivo_pdf;
+    private String arquivoPdf;
 }
