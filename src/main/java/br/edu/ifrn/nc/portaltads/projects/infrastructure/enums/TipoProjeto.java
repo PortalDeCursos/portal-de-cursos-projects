@@ -5,6 +5,7 @@ public enum TipoProjeto {
     TCC,
     PROJETO_INTEGRADOR,
     PROJETO_PESQUISA,
-    PROJETO_EXTENSAO
+    PROJETO_EXTENSAO,
+    OUTROS
 
 }

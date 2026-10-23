@@ -1,6 +1,7 @@
 package br.edu.ifrn.nc.portaltads.projects.business.mapper;
 
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
@@ -9,6 +10,6 @@ import org.mapstruct.MappingTarget;
 public interface ProjetoMapper {
 
     Projetos toEntity(ProjetoRequestDTO dto);
-    ProjetoRequestDTO toResponseDTO(Projetos entity);
+    ProjetoResponseDTO toResponseDTO(Projetos entity);
     void updateEntityFromDTO(ProjetoRequestDTO dto, @MappingTarget Projetos entity);
 }
