@@ -4,5 +4,9 @@ public enum StatusProjeto {
 
     EM_ANALISE,
     APROVADO,
-    RECUSADO
+    RECUSADO,
+    ANALISE_PUBLICACAO,
+    PUBLICADO,
+    RECUSADO_PUBLICACAO,
+    REVISAO
 }

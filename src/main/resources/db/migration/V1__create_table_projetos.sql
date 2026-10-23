@@ -14,13 +14,18 @@ CREATE TABLE projetos (
             'TCC',
             'PROJETO_INTEGRADOR',
             'PROJETO_PESQUISA',
-            'PROJETO_EXTENSAO'
+            'PROJETO_EXTENSAO',
+            'OUTROS'
         )),
 
     CONSTRAINT chk_status_projeto
         CHECK (status_projeto IN (
             'EM_ANALISE',
             'APROVADO',
-            'RECUSADO'
+            'RECUSADO',
+            'ANALISE_PUBLICACAO',
+            'PUBLICADO',
+            'RECUSADO_PUBLICACAO',
+            'REVISAO'
         ))
 );

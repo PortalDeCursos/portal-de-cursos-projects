@@ -4,6 +4,7 @@ import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
@@ -11,5 +12,7 @@ public interface ProjetoMapper {
 
     Projetos toEntity(ProjetoRequestDTO dto);
     ProjetoResponseDTO toResponseDTO(Projetos entity);
+
+    @Mapping(target = "statusProjeto", ignore = true)
     void updateEntityFromDTO(ProjetoRequestDTO dto, @MappingTarget Projetos entity);
 }

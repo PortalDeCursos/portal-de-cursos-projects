@@ -44,7 +44,7 @@ public class ProjetoService {
     }
 
     @Transactional
-    public ProjetoResponseDTO listarPorID (Long id) {
+    public ProjetoResponseDTO listarPorId(Long id) {
 
         Projetos projeto = buscarProjetoExistente(id);
         return projetoMapper.toResponseDTO(projeto);
@@ -73,20 +73,40 @@ public class ProjetoService {
     @Transactional
     public ProjetoResponseDTO atualizarStatus(Long id, StatusProjetoRequestDTO dto){
 
-        if (dto.getStatusProjeto() != StatusProjeto.APROVADO
-                && dto.getStatusProjeto() != StatusProjeto.RECUSADO) {
-            throw new IllegalArgumentException(
-                    "O status da avaliação deve ser APROVADO ou RECUSADO."
-            );
-        }
-
         Projetos projeto = buscarProjetoExistente(id);
 
-        projeto.setStatusProjeto(dto.getStatusProjeto());
+        StatusProjeto statusAtual = projeto.getStatusProjeto();
+        StatusProjeto novoStatus = dto.getStatusProjeto();
+
+        boolean transicaoValida = switch (statusAtual){
+            case EM_ANALISE ->
+                    novoStatus == StatusProjeto.APROVADO || novoStatus == StatusProjeto.RECUSADO;
+            case APROVADO ->
+                    novoStatus == StatusProjeto.ANALISE_PUBLICACAO;
+            case ANALISE_PUBLICACAO ->
+                    novoStatus == StatusProjeto.PUBLICADO || novoStatus == StatusProjeto.RECUSADO_PUBLICACAO;
+
+            case RECUSADO_PUBLICACAO ->
+                    novoStatus == StatusProjeto.REVISAO;
+
+            case REVISAO ->
+                    novoStatus == StatusProjeto.EM_ANALISE;
+
+            case RECUSADO, PUBLICADO -> false;
+        };
+
+        if (!transicaoValida){
+            throw new IllegalArgumentException(
+                    "Não é permitida a alteração do status "
+            + statusAtual + " para " +novoStatus + ".");
+        }
+
+        projeto.setStatusProjeto(novoStatus);
 
         Projetos projetoAtualizado = projetoRepository.save(projeto);
 
         return projetoMapper.toResponseDTO(projetoAtualizado);
+
     }
 
     private Projetos buscarProjetoExistente(Long id){
