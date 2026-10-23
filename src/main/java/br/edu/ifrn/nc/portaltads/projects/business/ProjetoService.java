@@ -4,6 +4,7 @@ import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ConflictException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ResourceNotFoundException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoRepository;
@@ -27,6 +28,7 @@ public class ProjetoService {
             throw new ConflictException("Já existe um projeto cadastrado com esse nome.");
         }
         Projetos projeto = projetoMapper.toEntity(dto);
+        projeto.setStatusProjeto(StatusProjeto.EM_ANALISE);
         Projetos projetoSalvo = projetoRepository.save(projeto);
 
         return projetoMapper.toResponseDTO(projetoSalvo);

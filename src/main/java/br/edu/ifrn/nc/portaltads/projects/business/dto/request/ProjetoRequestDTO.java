@@ -1,6 +1,5 @@
 package br.edu.ifrn.nc.portaltads.projects.business.dto.request;
 
-import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.TipoProjeto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,9 +34,6 @@ public class ProjetoRequestDTO {
 
     @NotNull
     private TipoProjeto tipoProjeto;
-
-    @NotNull
-    private StatusProjeto statusProjeto;
 
     @NotBlank
     @Size(max = 500)
