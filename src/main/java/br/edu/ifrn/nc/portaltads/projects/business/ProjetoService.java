@@ -1,6 +1,7 @@
 package br.edu.ifrn.nc.portaltads.projects.business;
 
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.request.StatusProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
@@ -65,8 +66,27 @@ public class ProjetoService {
 
     @Transactional
     public void excluir(Long id) {
-        Projetos projeto= buscarProjetoExistente(id);
+        Projetos projeto = buscarProjetoExistente(id);
         projetoRepository.delete(projeto);
+    }
+
+    @Transactional
+    public ProjetoResponseDTO atualizarStatus(Long id, StatusProjetoRequestDTO dto){
+
+        if (dto.getStatusProjeto() != StatusProjeto.APROVADO
+                && dto.getStatusProjeto() != StatusProjeto.RECUSADO) {
+            throw new IllegalArgumentException(
+                    "O status da avaliação deve ser APROVADO ou RECUSADO."
+            );
+        }
+
+        Projetos projeto = buscarProjetoExistente(id);
+
+        projeto.setStatusProjeto(dto.getStatusProjeto());
+
+        Projetos projetoAtualizado = projetoRepository.save(projeto);
+
+        return projetoMapper.toResponseDTO(projetoAtualizado);
     }
 
     private Projetos buscarProjetoExistente(Long id){
