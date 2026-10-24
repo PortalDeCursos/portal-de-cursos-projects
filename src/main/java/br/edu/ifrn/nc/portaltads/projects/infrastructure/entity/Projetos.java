@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -26,8 +29,11 @@ public class Projetos {
     @Column(name = "orientador_id")
     private Long orientadorId;
 
-    @Column(name = "autor_projeto_id")
-    private Long autorProjetoId;
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL)
+    private List<AutorProjeto> autores = new ArrayList<>();
+
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL)
+    private List<ProjetoDisciplina> disciplinas = new ArrayList<>();
 
     @Column(name = "nome")
     private String nome;
