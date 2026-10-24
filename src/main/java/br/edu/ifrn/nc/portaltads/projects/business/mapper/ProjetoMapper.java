@@ -1,18 +1,37 @@
 package br.edu.ifrn.nc.portaltads.projects.business.mapper;
 
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.response.AutorProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.AutorProjeto;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.ProjetoDisciplina;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
+import java.util.List;
+
 @Mapper(componentModel = "spring")
 public interface ProjetoMapper {
 
+    @Mapping(target = "autores", ignore = true)
+    @Mapping(target = "disciplinas", ignore = true)
     Projetos toEntity(ProjetoRequestDTO dto);
+
+    @Mapping(target = "autores", source = "autores")
+    @Mapping(target = "disciplinasIds", source = "disciplinas")
     ProjetoResponseDTO toResponseDTO(Projetos entity);
 
     @Mapping(target = "statusProjeto", ignore = true)
+    @Mapping(target = "autores", ignore = true)
+    @Mapping(target = "disciplinas", ignore = true)
     void updateEntityFromDTO(ProjetoRequestDTO dto, @MappingTarget Projetos entity);
+
+    List<AutorProjetoResponseDTO> mapAutores(List<AutorProjeto> autores);
+    AutorProjetoResponseDTO toAutorResponseDTO(AutorProjeto autor);
+
+    default Long map(ProjetoDisciplina disciplina){
+        return disciplina.getDisciplinaId();
+    }
 }

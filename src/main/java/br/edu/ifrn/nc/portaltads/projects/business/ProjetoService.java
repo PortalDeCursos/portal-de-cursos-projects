@@ -4,6 +4,8 @@ import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.StatusProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.AutorProjeto;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.ProjetoDisciplina;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ConflictException;
@@ -13,6 +15,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -30,6 +33,10 @@ public class ProjetoService {
         }
         Projetos projeto = projetoMapper.toEntity(dto);
         projeto.setStatusProjeto(StatusProjeto.EM_ANALISE);
+
+        associarAutores(projeto, dto);
+        associarDisciplinas(projeto, dto);
+
         Projetos projetoSalvo = projetoRepository.save(projeto);
 
         return projetoMapper.toResponseDTO(projetoSalvo);
@@ -115,5 +122,33 @@ public class ProjetoService {
                         "Projeto não encontrado com o ID: " + id));
     }
 
+    private void associarAutores(Projetos projeto, ProjetoRequestDTO dto){
+        List<AutorProjeto> autores = dto.getAutores()
+                .stream()
+                .map(autorDTO -> {
+                    AutorProjeto autor = new AutorProjeto();
+                    autor.setNome(autorDTO.getNome());
+                    autor.setEmail(autorDTO.getEmail());
+                    autor.setProjeto(projeto);
+                    return autor;
+                })
+                .toList();
+
+        projeto.setAutores(new ArrayList<>(autores));
+    }
+
+    private void associarDisciplinas(Projetos projeto, ProjetoRequestDTO dto){
+        List<ProjetoDisciplina> disciplinas = dto.getDisciplinaIds()
+                .stream()
+                .map(disciplinaId -> {
+                    ProjetoDisciplina disciplina = new ProjetoDisciplina();
+                    disciplina.setDisciplinaId(disciplinaId);
+                    disciplina.setProjeto(projeto);
+                    return disciplina;
+                })
+                .toList();
+
+        projeto.setDisciplinas(new ArrayList<>(disciplinas));
+    }
 
 }
