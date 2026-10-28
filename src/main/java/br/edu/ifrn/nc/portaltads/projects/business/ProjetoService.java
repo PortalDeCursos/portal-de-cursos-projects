@@ -57,6 +57,15 @@ public class ProjetoService {
         return projetoMapper.toResponseDTO(projeto);
     }
 
+
+    @Transactional
+    public List<ProjetoResponseDTO> listarPorStatus(StatusProjeto statusProjeto){
+        return projetoRepository.findByStatusProjeto(statusProjeto)
+                .stream()
+                .map(projetoMapper::toResponseDTO)
+                .toList();
+    }
+
     @Transactional
     public ProjetoResponseDTO atualizar(Long id, ProjetoRequestDTO dto){
         Projetos projeto = buscarProjetoExistente(id);
