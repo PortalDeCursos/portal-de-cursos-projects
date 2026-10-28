@@ -1,13 +1,15 @@
+
 CREATE TABLE projetos (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    campus_id BIGINT NOT NULL,
     curso_id BIGINT NOT NULL,
-    orientador_id BIGINT NOT NULL,
-    autor_projeto_id BIGINT NOT NULL,
     nome VARCHAR(255) NOT NULL UNIQUE,
+    resumo VARCHAR(500) NOT NULL,
     descricao TEXT NOT NULL,
     tipo_projeto VARCHAR(30) NOT NULL,
-    status_projeto VARCHAR(20) NOT NULL DEFAULT 'EM_ANALISE',
-    arquivo_pdf VARCHAR(500),
+    status_projeto VARCHAR(30) NOT NULL DEFAULT 'EM_ANALISE',
+    data_inicio DATE NOT NULL,
+    data_fim DATE NOT NULL,
 
     CONSTRAINT chk_tipo_projetos
         CHECK (tipo_projeto IN (
@@ -27,5 +29,8 @@ CREATE TABLE projetos (
             'PUBLICADO',
             'RECUSADO_PUBLICACAO',
             'REVISAO'
-        ))
+        )),
+
+    CONSTRAINT chk_projeto_datas
+        CHECK (data_fim >= data_inicio)
 );
