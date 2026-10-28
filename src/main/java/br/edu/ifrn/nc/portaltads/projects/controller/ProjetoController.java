@@ -81,6 +81,13 @@ public class ProjetoController {
         return ResponseEntity.ok(projetoService.listarPorStatus(StatusProjeto.EM_ANALISE));
     }
 
+    @GetMapping("/aprovados")
+    @Operation(summary = "Listar Projetos Aprovados", description = "Lista os projetos aprovados pelo professor orientador")
+    @ApiResponse(responseCode = "200", description = "Busca realizada com sucesso")
+    @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
+    public ResponseEntity<List<ProjetoResponseDTO>> listarAprovados(){
+        return ResponseEntity.ok(projetoService.listarPorStatus(StatusProjeto.APROVADO));
+    }
 
     @PatchMapping("/{id}/status")
     @Operation(summary = "Atualizar Status do Projeto", description = "Atualiza o status do projeto conforme as etapas")
