@@ -4,9 +4,8 @@ import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.StatusProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
-import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.AutorProjeto;
-import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.ProjetoDisciplina;
-import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.*;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.PapelProjetoProfessor;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ConflictException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ResourceNotFoundException;
@@ -31,11 +30,17 @@ public class ProjetoService {
         if (projetoRepository.existsByNome(dto.getNome())) {
             throw new ConflictException("Já existe um projeto cadastrado com esse nome.");
         }
+
+        validarOrientador(dto);
+
         Projetos projeto = projetoMapper.toEntity(dto);
         projeto.setStatusProjeto(StatusProjeto.EM_ANALISE);
 
         associarAutores(projeto, dto);
         associarDisciplinas(projeto, dto);
+        associarProfessores(projeto, dto);
+        associarDocumentos(projeto, dto);
+
 
         Projetos projetoSalvo = projetoRepository.save(projeto);
 
@@ -55,6 +60,15 @@ public class ProjetoService {
 
         Projetos projeto = buscarProjetoExistente(id);
         return projetoMapper.toResponseDTO(projeto);
+    }
+
+
+    @Transactional
+    public List<ProjetoResponseDTO> listarPorStatus(StatusProjeto statusProjeto){
+        return projetoRepository.findByStatusProjeto(statusProjeto)
+                .stream()
+                .map(projetoMapper::toResponseDTO)
+                .toList();
     }
 
     @Transactional
@@ -149,6 +163,51 @@ public class ProjetoService {
                 .toList();
 
         projeto.setDisciplinas(new ArrayList<>(disciplinas));
+    }
+
+    private void associarProfessores(Projetos projeto, ProjetoRequestDTO dto) {
+        List<ProjetoProfessor> professores = dto.getProfessores()
+                .stream()
+                .map(professorDTO -> {
+                    ProjetoProfessor professor = new ProjetoProfessor();
+                    professor.setProfessorId(professorDTO.getProfessorId());
+                    professor.setPapel(professorDTO.getPapel());
+                    professor.setProjeto(projeto);
+                    return professor;
+                })
+                .toList();
+
+        projeto.setProfessores(new ArrayList<>(professores));
+    }
+
+    private void validarOrientador(ProjetoRequestDTO dto) {
+
+        long quantidadeOrientadores = dto.getProfessores()
+                .stream()
+                .filter(professor ->
+                        professor.getPapel() == PapelProjetoProfessor.ORIENTADOR)
+                .count();
+
+        if (quantidadeOrientadores != 1) {
+            throw new IllegalArgumentException(
+                    "O projeto deve ter exatamente um professor orientador.");
+        }
+    }
+
+    private void associarDocumentos(Projetos projeto, ProjetoRequestDTO dto) {
+        List<ProjetoDocumento> documentos = dto.getDocumentos()
+                .stream()
+                .map(documentoDTO -> {
+                    ProjetoDocumento documento = new ProjetoDocumento();
+                    documento.setNomeArquivo(documentoDTO.getNomeArquivo());
+                    documento.setTipoDocumento(documentoDTO.getTipoDocumento());
+                    documento.setLocalizacao(documentoDTO.getLocalizacao());
+                    documento.setProjeto(projeto);
+                    return documento;
+                })
+                .toList();
+
+        projeto.setDocumentos(new ArrayList<>(documentos));
     }
 
 }

@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -24,7 +25,7 @@ public class ProjetoRequestDTO {
     private Long cursoId;
 
     @NotNull
-    private Long orientadorId;
+    private Long campusId;
 
     @NotEmpty
     @Valid
@@ -40,10 +41,24 @@ public class ProjetoRequestDTO {
     @NotBlank
     private String descricao;
 
+    @NotBlank
+    @Size(max = 500)
+    private String resumo;
+
     @NotNull
     private TipoProjeto tipoProjeto;
 
-    @NotBlank
-    @Size(max = 500)
-    private String arquivoPdf;
+    @NotNull
+    private LocalDate dataInicio;
+
+    @NotNull
+    private LocalDate dataFim;
+
+    @NotEmpty
+    @Valid
+    private List<ProjetoProfessorRequestDTO> professores;
+
+    @NotEmpty
+    @Valid
+    private List<ProjetoDocumentoRequestDTO> documentos;
 }

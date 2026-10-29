@@ -4,6 +4,7 @@ import br.edu.ifrn.nc.portaltads.projects.business.ProjetoService;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.StatusProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -70,6 +71,22 @@ public class ProjetoController {
     @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
     public ResponseEntity<ProjetoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody ProjetoRequestDTO dto){
         return ResponseEntity.ok(projetoService.atualizar(id, dto));
+    }
+
+    @GetMapping("/em-analise")
+    @Operation(summary = "Listar Projetos em Análise", description = "Lista os projetos que estão aguardando análise do professor orientador")
+    @ApiResponse(responseCode = "200", description = "Busca realizada com sucesso")
+    @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
+    public ResponseEntity<List<ProjetoResponseDTO>> listarEmAnalise(){
+        return ResponseEntity.ok(projetoService.listarPorStatus(StatusProjeto.EM_ANALISE));
+    }
+
+    @GetMapping("/aprovados")
+    @Operation(summary = "Listar Projetos Aprovados", description = "Lista os projetos aprovados pelo professor orientador")
+    @ApiResponse(responseCode = "200", description = "Busca realizada com sucesso")
+    @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
+    public ResponseEntity<List<ProjetoResponseDTO>> listarAprovados(){
+        return ResponseEntity.ok(projetoService.listarPorStatus(StatusProjeto.APROVADO));
     }
 
     @PatchMapping("/{id}/status")

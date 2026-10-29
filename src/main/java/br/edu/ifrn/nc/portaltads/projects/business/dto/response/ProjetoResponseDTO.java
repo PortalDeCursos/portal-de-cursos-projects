@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -16,14 +17,18 @@ import java.util.List;
 public class ProjetoResponseDTO {
 
     private Long id;
+    private Long campusId;
     private Long cursoId;
-    private Long orientadorId;
     private List<AutorProjetoResponseDTO> autores;
     private List<Long> disciplinasIds;
     private String nome;
+    private String resumo;
     private String descricao;
     private TipoProjeto tipoProjeto;
     private StatusProjeto statusProjeto;
-    private String arquivoPdf;
+    private LocalDate dataInicio;
+    private LocalDate dataFim;
+    private List<ProjetoProfessorResponseDTO> professores;
+    private List<ProjetoDocumentoResponseDTO> documentos;
 
 }

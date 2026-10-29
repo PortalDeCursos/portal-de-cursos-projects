@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,11 +24,11 @@ public class Projetos {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "curso_id")
-    private Long cursoId;
+    @Column(name = "campus_id", nullable = false)
+    private Long campusId;
 
-    @Column(name = "orientador_id")
-    private Long orientadorId;
+    @Column(name = "curso_id", nullable = false)
+    private Long cursoId;
 
     @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL)
     private List<AutorProjeto> autores = new ArrayList<>();
@@ -35,11 +36,14 @@ public class Projetos {
     @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL)
     private List<ProjetoDisciplina> disciplinas = new ArrayList<>();
 
-    @Column(name = "nome")
+    @Column(name = "nome", nullable = false, unique = true)
     private String nome;
 
-    @Column(name = "descricao")
+    @Column(name = "descricao", nullable = false)
     private String descricao;
+
+    @Column(name = "resumo", nullable = false, length = 500)
+    private String resumo;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_projeto", nullable = false, length = 30)
@@ -49,6 +53,15 @@ public class Projetos {
     @Column(name = "status_projeto", nullable = false, length = 30)
     private StatusProjeto statusProjeto;
 
-    @Column(name = "arquivo_pdf")
-    private String arquivoPdf;
+    @Column(name = "data_inicio", nullable = false)
+    private LocalDate dataInicio;
+
+    @Column(name = "data_fim", nullable = false)
+    private LocalDate dataFim;
+
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL)
+    private List<ProjetoProfessor> professores = new ArrayList<>();
+
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL)
+    private List<ProjetoDocumento> documentos = new ArrayList<>();
 }
