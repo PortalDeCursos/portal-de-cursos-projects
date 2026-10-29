@@ -1,10 +1,7 @@
 package br.edu.ifrn.nc.portaltads.projects.infrastructure.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -33,6 +30,7 @@ public class ProjetoDocumento {
     @Column(name = "localizacao", nullable = false, length = 500)
     private String localizacao;
 
+    @Generated
     @Column(name = "data_envio", nullable = false, insertable = false, updatable = false)
     private LocalDateTime dataEnvio;
 }

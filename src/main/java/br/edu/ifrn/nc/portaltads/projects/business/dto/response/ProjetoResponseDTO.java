@@ -27,6 +27,8 @@ public class ProjetoResponseDTO {
     private TipoProjeto tipoProjeto;
     private StatusProjeto statusProjeto;
     private LocalDate dataInicio;
-    private LocalDate dataFim;;
+    private LocalDate dataFim;
+    private List<ProjetoProfessorResponseDTO> professores;
+    private List<ProjetoDocumentoResponseDTO> documentos;
 
 }

@@ -53,4 +53,12 @@ public class ProjetoRequestDTO {
 
     @NotNull
     private LocalDate dataFim;
+
+    @NotEmpty
+    @Valid
+    private List<ProjetoProfessorRequestDTO> professores;
+
+    @NotEmpty
+    @Valid
+    private List<ProjetoDocumentoRequestDTO> documentos;
 }

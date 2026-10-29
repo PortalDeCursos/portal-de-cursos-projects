@@ -9,6 +9,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -102,6 +103,35 @@ public class GlobalExceptionHandler {
 
         problem.setTitle("Argumento inválido");
 
+        return problem;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(
+            DataIntegrityViolationException ex) {
+
+        Throwable cause = ex;
+
+        while (cause != null) {
+            if (cause.getMessage() != null
+                    && cause.getMessage().contains("chk_projeto_datas")) {
+
+                ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                        HttpStatus.BAD_REQUEST,
+                        "A data final não pode ser anterior à data inicial.");
+
+                problem.setTitle("Datas inválidas");
+                return problem;
+            }
+
+            cause = cause.getCause();
+        }
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                "Os dados informados violam uma restrição do banco de dados.");
+
+        problem.setTitle("Conflito de dados");
         return problem;
     }
 

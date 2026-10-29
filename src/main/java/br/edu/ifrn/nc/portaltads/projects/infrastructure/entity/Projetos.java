@@ -58,4 +58,10 @@ public class Projetos {
 
     @Column(name = "data_fim", nullable = false)
     private LocalDate dataFim;
+
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL)
+    private List<ProjetoProfessor> professores = new ArrayList<>();
+
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL)
+    private List<ProjetoDocumento> documentos = new ArrayList<>();
 }
