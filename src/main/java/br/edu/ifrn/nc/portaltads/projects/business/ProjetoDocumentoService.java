@@ -106,7 +106,7 @@ public class ProjetoDocumentoService {
     }
 
     @Transactional
-    public void excluirDocumento(Long projetoId, Long documentoId) throws IOException{
+    public void excluirDocumento(Long projetoId, Long documentoId){
 
         projetoRepository.findById(projetoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado."));
@@ -115,9 +115,22 @@ public class ProjetoDocumentoService {
                 .findByIdAndProjeto_Id(documentoId, projetoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Documento não encontrado."));
 
-        armazenamentoArquivo.excluir(documento.getLocalizacao());
+        String localizacao = documento.getLocalizacao();
+
         projetoDocumentoRepository.delete(documento);
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            armazenamentoArquivo.excluir(localizacao);
+                        } catch (IOException e) {
+                            throw new RuntimeException(
+                                    "Não foi possível excluir o arquivo físico.", e);
+                        }
+                    }
+                }
+        );
     }
-
-
 }
