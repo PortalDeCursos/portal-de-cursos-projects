@@ -86,6 +86,18 @@ public class ArmazenamentoArquivo {
         return caminhoArquivo;
     }
 
+    public boolean pertenceAoDiretorio(String localizacao) {
+        Path diretorioBase = Paths.get(diretorio)
+                .toAbsolutePath()
+                .normalize();
+
+        Path caminhoArquivo = Paths.get(localizacao)
+                .toAbsolutePath()
+                .normalize();
+
+        return caminhoArquivo.startsWith(diretorioBase);
+    }
+
     public void excluir(String localizacao) throws IOException {
         Path caminhoArquivo = validarCaminho(localizacao);
         Files.deleteIfExists(caminhoArquivo);

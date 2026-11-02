@@ -34,3 +34,7 @@ build/
 
 ## env
 .env
+
+##pasta criada para upload de arquivos
+.portalcursos
+.projetos
