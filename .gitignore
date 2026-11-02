@@ -34,3 +34,6 @@ build/
 
 ## env
 .env
+
+# Arquivos enviados pelos projetos
+portalcursos/

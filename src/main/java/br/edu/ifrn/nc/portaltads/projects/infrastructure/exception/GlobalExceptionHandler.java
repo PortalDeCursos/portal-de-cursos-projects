@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -132,6 +133,19 @@ public class GlobalExceptionHandler {
                 "Os dados informados violam uma restrição do banco de dados.");
 
         problem.setTitle("Conflito de dados");
+        return problem;
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ProblemDetail handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "O arquivo excede o tamanho máximo permitido de 10 MB.");
+
+        problem.setTitle("Arquivo muito grande");
+
         return problem;
     }
 
