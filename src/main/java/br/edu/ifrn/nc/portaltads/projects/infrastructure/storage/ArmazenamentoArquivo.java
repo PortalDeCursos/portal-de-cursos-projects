@@ -2,6 +2,8 @@ package br.edu.ifrn.nc.portaltads.projects.infrastructure.storage;
 
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -71,5 +73,12 @@ public class ArmazenamentoArquivo {
         Path caminhoArquivo = Paths.get(localizacao);
         Files.deleteIfExists(caminhoArquivo);
     }
+
+    public Resource carregar(String localizacao) {
+        Path caminhoArquivo = Paths.get(localizacao);
+
+        return new FileSystemResource(caminhoArquivo);
+    }
+
 
 }

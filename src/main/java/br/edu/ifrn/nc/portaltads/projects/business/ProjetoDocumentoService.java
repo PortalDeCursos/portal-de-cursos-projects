@@ -1,5 +1,6 @@
 package br.edu.ifrn.nc.portaltads.projects.business;
 
+import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoDocumentoDownloadDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoDocumentoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.ProjetoDocumento;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
@@ -8,6 +9,7 @@ import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoDocum
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoRepository;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.storage.ArmazenamentoArquivo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -79,4 +81,23 @@ public class ProjetoDocumentoService {
                 })
                 .toList();
     }
+
+    public ProjetoDocumentoDownloadDTO baixarDocumento(Long projetoId, Long documentoId){
+        projetoRepository.findById(projetoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado."));
+
+        ProjetoDocumento documento = projetoDocumentoRepository
+                .findByIdAndProjeto_Id(documentoId, projetoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Documento não encontrado."));
+
+        Resource arquivo = armazenamentoArquivo.carregar(documento.getLocalizacao());
+
+        ProjetoDocumentoDownloadDTO response = new ProjetoDocumentoDownloadDTO();
+        response.setArquivo(arquivo);
+        response.setNomeArquivo(documento.getNomeArquivo());
+
+        return response;
+    }
+
+
 }
