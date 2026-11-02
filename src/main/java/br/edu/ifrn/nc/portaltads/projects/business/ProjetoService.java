@@ -10,10 +10,14 @@ import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ConflictException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ResourceNotFoundException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoRepository;
-import jakarta.transaction.Transactional;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.storage.ArmazenamentoArquivo;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +27,7 @@ public class ProjetoService {
 
     private final ProjetoRepository projetoRepository;
     private final ProjetoMapper projetoMapper;
+    private final ArmazenamentoArquivo armazenamentoArquivo;
 
     @Transactional
     public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto) {
@@ -47,7 +52,7 @@ public class ProjetoService {
         return projetoMapper.toResponseDTO(projetoSalvo);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ProjetoResponseDTO> listar(){
         return projetoRepository.findAll()
                 .stream()
@@ -55,7 +60,7 @@ public class ProjetoService {
                 .toList();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ProjetoResponseDTO listarPorId(Long id) {
 
         Projetos projeto = buscarProjetoExistente(id);
@@ -63,7 +68,7 @@ public class ProjetoService {
     }
 
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ProjetoResponseDTO> listarPorStatus(StatusProjeto statusProjeto){
         return projetoRepository.findByStatusProjeto(statusProjeto)
                 .stream()
@@ -85,11 +90,39 @@ public class ProjetoService {
         return projetoMapper.toResponseDTO(projetoAtualizado);
     }
 
+
     @Transactional
     public void excluir(Long id) {
         Projetos projeto = buscarProjetoExistente(id);
+
+        List<String> arquivosFisicos = projeto.getDocumentos()
+                .stream()
+                .map(ProjetoDocumento::getLocalizacao)
+                .filter(localizacao -> localizacao != null)
+                .filter(armazenamentoArquivo::pertenceAoDiretorio)
+                .toList();
+
         projetoRepository.delete(projeto);
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        for (String localizacao : arquivosFisicos) {
+                            try {
+                                armazenamentoArquivo.excluir(localizacao);
+                            } catch (IOException e) {
+                                throw new RuntimeException(
+                                        "Não foi possível excluir o arquivo físico: "
+                                                + localizacao,
+                                        e);
+                            }
+                        }
+                    }
+                }
+        );
     }
+
 
     @Transactional
     public ProjetoResponseDTO atualizarStatus(Long id, StatusProjetoRequestDTO dto){
@@ -195,6 +228,12 @@ public class ProjetoService {
     }
 
     private void associarDocumentos(Projetos projeto, ProjetoRequestDTO dto) {
+
+        if (dto.getDocumentos() == null || dto.getDocumentos().isEmpty()) {
+            projeto.setDocumentos(new ArrayList<>());
+            return;
+        }
+
         List<ProjetoDocumento> documentos = dto.getDocumentos()
                 .stream()
                 .map(documentoDTO -> {
@@ -209,5 +248,4 @@ public class ProjetoService {
 
         projeto.setDocumentos(new ArrayList<>(documentos));
     }
-
 }

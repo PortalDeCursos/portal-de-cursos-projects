@@ -58,7 +58,5 @@ public class ProjetoRequestDTO {
     @Valid
     private List<ProjetoProfessorRequestDTO> professores;
 
-    @NotEmpty
-    @Valid
     private List<ProjetoDocumentoRequestDTO> documentos;
 }
