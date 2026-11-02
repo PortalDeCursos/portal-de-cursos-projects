@@ -1,8 +1,11 @@
 package br.edu.ifrn.nc.portaltads.projects.controller;
 
 import br.edu.ifrn.nc.portaltads.projects.business.ProjetoDocumentoService;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoDocumentoDownloadDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoDocumentoResponseDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -34,5 +37,17 @@ public class ProjetoDocumentoController {
         List<ProjetoDocumentoResponseDTO> documentos = projetoDocumentoService.listarDocumentos(projetoId);
 
         return ResponseEntity.ok(documentos);
+    }
+
+    @GetMapping("/{documentoId}/download")
+    public ResponseEntity<Resource> baixarDocumento(
+            @PathVariable Long projetoId, @PathVariable Long documentoId) throws IOException{
+
+        ProjetoDocumentoDownloadDTO documento = projetoDocumentoService.baixarDocumento(projetoId, documentoId);
+
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + documento.getNomeArquivo() + "\"")
+                .body(documento.getArquivo());
     }
 }
