@@ -10,7 +10,7 @@ import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ConflictException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ResourceNotFoundException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -47,7 +47,7 @@ public class ProjetoService {
         return projetoMapper.toResponseDTO(projetoSalvo);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ProjetoResponseDTO> listar(){
         return projetoRepository.findAll()
                 .stream()
@@ -55,7 +55,7 @@ public class ProjetoService {
                 .toList();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ProjetoResponseDTO listarPorId(Long id) {
 
         Projetos projeto = buscarProjetoExistente(id);
@@ -63,7 +63,7 @@ public class ProjetoService {
     }
 
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ProjetoResponseDTO> listarPorStatus(StatusProjeto statusProjeto){
         return projetoRepository.findByStatusProjeto(statusProjeto)
                 .stream()

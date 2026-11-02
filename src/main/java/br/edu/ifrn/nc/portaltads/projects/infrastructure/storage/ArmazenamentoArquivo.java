@@ -1,6 +1,7 @@
 package br.edu.ifrn.nc.portaltads.projects.infrastructure.storage;
 
 
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -43,17 +44,14 @@ public class ArmazenamentoArquivo {
             throw new IllegalArgumentException("O arquivo deve ser do tipo PDF.");
         }
 
-        byte[] assinatura = new byte[5];
+        byte[] assinatura;
 
         try (InputStream input = arquivo.getInputStream()) {
+            assinatura = input.readNBytes(5);
+        }
 
-            int bytesLidos = input.read(assinatura);
-
-            if (bytesLidos != 5 ||
-                    !new String(assinatura, StandardCharsets.US_ASCII).equals("%PDF-")) {
-
-                throw new IllegalArgumentException("O conteúdo do arquivo não é um PDF válido.");
-            }
+        if (!new String(assinatura, StandardCharsets.US_ASCII).equals("%PDF-")) {
+            throw new IllegalArgumentException("O conteúdo do arquivo não é um PDF válido.");
         }
 
         Path caminhoDiretorio = Paths.get(diretorio);
@@ -64,21 +62,42 @@ public class ArmazenamentoArquivo {
 
         Path caminhoArquivo = caminhoDiretorio.resolve(nomeArquivo);
 
-        Files.copy(arquivo.getInputStream(), caminhoArquivo);
+        try (InputStream input = arquivo.getInputStream()) {
+            Files.copy(input, caminhoArquivo);
+        }
 
         return caminhoArquivo.toString();
     }
 
+    private Path validarCaminho(String localizacao) {
+        Path diretorioBase = Paths.get(diretorio)
+                .toAbsolutePath()
+                .normalize();
+
+        Path caminhoArquivo = Paths.get(localizacao)
+                .toAbsolutePath()
+                .normalize();
+
+        if (!caminhoArquivo.startsWith(diretorioBase)) {
+            throw new IllegalArgumentException(
+                    "O arquivo está fora do diretório permitido.");
+        }
+
+        return caminhoArquivo;
+    }
+
     public void excluir(String localizacao) throws IOException {
-        Path caminhoArquivo = Paths.get(localizacao);
+        Path caminhoArquivo = validarCaminho(localizacao);
         Files.deleteIfExists(caminhoArquivo);
     }
 
     public Resource carregar(String localizacao) {
-        Path caminhoArquivo = Paths.get(localizacao);
+        Path caminhoArquivo = validarCaminho(localizacao);
+
+        if (!Files.exists(caminhoArquivo)) {
+            throw new ResourceNotFoundException("Arquivo não encontrado.");
+        }
 
         return new FileSystemResource(caminhoArquivo);
     }
-
-
 }

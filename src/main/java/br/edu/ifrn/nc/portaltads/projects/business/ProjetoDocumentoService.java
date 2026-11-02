@@ -8,10 +8,13 @@ import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ResourceNotFo
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoDocumentoRepository;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoRepository;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.storage.ArmazenamentoArquivo;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.util.List;
@@ -24,6 +27,7 @@ public class ProjetoDocumentoService {
     private final ProjetoRepository projetoRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
 
+    @Transactional
     public ProjetoDocumentoResponseDTO enviarDocumento(Long projetoId, MultipartFile arquivo) throws IOException{
         Projetos projeto = projetoRepository.findById(projetoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado."));
@@ -62,6 +66,7 @@ public class ProjetoDocumentoService {
 
     }
 
+    @Transactional(readOnly = true)
     public List<ProjetoDocumentoResponseDTO> listarDocumentos(Long projetoId) {
 
         projetoRepository.findById(projetoId).orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado."));
@@ -82,6 +87,7 @@ public class ProjetoDocumentoService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public ProjetoDocumentoDownloadDTO baixarDocumento(Long projetoId, Long documentoId){
         projetoRepository.findById(projetoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado."));
@@ -97,6 +103,20 @@ public class ProjetoDocumentoService {
         response.setNomeArquivo(documento.getNomeArquivo());
 
         return response;
+    }
+
+    @Transactional
+    public void excluirDocumento(Long projetoId, Long documentoId) throws IOException{
+
+        projetoRepository.findById(projetoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado."));
+
+        ProjetoDocumento documento = projetoDocumentoRepository
+                .findByIdAndProjeto_Id(documentoId, projetoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Documento não encontrado."));
+
+        armazenamentoArquivo.excluir(documento.getLocalizacao());
+        projetoDocumentoRepository.delete(documento);
     }
 
 

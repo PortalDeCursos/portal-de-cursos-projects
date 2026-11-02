@@ -50,4 +50,14 @@ public class ProjetoDocumentoController {
                         "attachment; filename=\"" + documento.getNomeArquivo() + "\"")
                 .body(documento.getArquivo());
     }
+
+    @DeleteMapping("/{documentoId}")
+    public ResponseEntity<Void> excluirDocumento(
+            @PathVariable Long projetoId,
+            @PathVariable Long documentoId) throws IOException {
+
+        projetoDocumentoService.excluirDocumento(projetoId, documentoId);
+
+        return ResponseEntity.noContent().build();
+    }
 }
