@@ -1,11 +1,14 @@
 package br.edu.ifrn.nc.portaltads.projects.business;
 
+import br.edu.ifrn.nc.portaltads.projects.business.dto.DisciplinaDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.StatusProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.event.ProjetoSubmetidoEvent;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
 import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
+import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
+import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.*;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.PapelProjetoProfessor;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
@@ -32,9 +35,14 @@ public class ProjetoService {
     private final ProjetoMapper projetoMapper;
     private final ArmazenamentoArquivo armazenamentoArquivo;
     private final ProjetoEventPublisher projetoEventPublisher;
+    private final CursoClient cursoClient;
+    private final DisciplinaClient disciplinaClient;
 
     @Transactional
     public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto) {
+
+        cursoClient.buscarPorID(dto.getCursoId());
+        validarDisciplinas(dto);
 
         if (projetoRepository.existsByNome(dto.getNome())) {
             throw new ConflictException("Já existe um projeto cadastrado com esse nome.");
@@ -277,4 +285,26 @@ public class ProjetoService {
 
         projeto.setDocumentos(new ArrayList<>(documentos));
     }
+
+
+    private void validarDisciplinas(ProjetoRequestDTO dto) {
+
+        List<DisciplinaDTO> disciplinas = disciplinaClient.buscarPorCurso(
+                dto.getCursoId());
+
+        for (Long disciplinaId : dto.getDisciplinaIds()) {
+
+            boolean pertenceAoCurso = disciplinas.stream()
+                    .anyMatch(disciplina ->
+                            disciplina.id().equals(disciplinaId)
+                                    && disciplina.cursoId().equals(dto.getCursoId()));
+
+            if (!pertenceAoCurso) {
+                throw new ResourceNotFoundException(
+                        "Disciplina não encontrada no curso informado. ID: "
+                                + disciplinaId);
+            }
+        }
+    }
+
 }

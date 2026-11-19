@@ -149,6 +149,40 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(CursoNaoEncontradoException.class)
+    public ProblemDetail handleCursoNaoEncontrado(
+            CursoNaoEncontradoException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                ex.getMessage());
+
+        problem.setTitle("Curso não encontrado");
+
+        return problem;
+    }
+
+    @ExceptionHandler(ServicoCursoIndisponivelException.class)
+    public ProblemDetail handleServicoCursoIndisponivel(
+            ServicoCursoIndisponivelException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                ex.getMessage());
+
+        problem.setTitle("Serviço de cursos indisponível");
+
+        return problem;
+    }
+
+    @ExceptionHandler(ErroIntegracaoException.class)
+    public ProblemDetail handleErroIntegracao(ErroIntegracaoException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_GATEWAY, ex.getMessage());
+        problem.setTitle("Erro na integração com serviço externo");
+        return problem;
+    }
+
     private Map<String, String> extractErrors(
             MethodArgumentNotValidException ex) {
 
