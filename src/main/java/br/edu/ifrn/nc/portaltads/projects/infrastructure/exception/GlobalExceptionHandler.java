@@ -175,19 +175,6 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
-    @ExceptionHandler(TimeoutIntegracaoException.class)
-    public ProblemDetail handleTimeoutIntegracao(
-            TimeoutIntegracaoException ex) {
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.GATEWAY_TIMEOUT,
-                ex.getMessage());
-
-        problem.setTitle("Tempo limite de integração excedido");
-
-        return problem;
-    }
-
     @ExceptionHandler(ErroIntegracaoException.class)
     public ProblemDetail handleErroIntegracao(ErroIntegracaoException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
