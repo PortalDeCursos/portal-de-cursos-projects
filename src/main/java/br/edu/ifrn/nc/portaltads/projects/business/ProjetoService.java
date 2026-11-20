@@ -1,9 +1,14 @@
 package br.edu.ifrn.nc.portaltads.projects.business;
 
+import br.edu.ifrn.nc.portaltads.projects.business.dto.DisciplinaDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.StatusProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.event.ProjetoSubmetidoEvent;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
+import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
+import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
+import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.*;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.PapelProjetoProfessor;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
@@ -18,6 +23,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,9 +34,15 @@ public class ProjetoService {
     private final ProjetoRepository projetoRepository;
     private final ProjetoMapper projetoMapper;
     private final ArmazenamentoArquivo armazenamentoArquivo;
+    private final ProjetoEventPublisher projetoEventPublisher;
+    private final CursoClient cursoClient;
+    private final DisciplinaClient disciplinaClient;
 
     @Transactional
     public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto) {
+
+        cursoClient.buscarPorID(dto.getCursoId());
+        validarDisciplinas(dto);
 
         if (projetoRepository.existsByNome(dto.getNome())) {
             throw new ConflictException("Já existe um projeto cadastrado com esse nome.");
@@ -49,7 +61,32 @@ public class ProjetoService {
 
         Projetos projetoSalvo = projetoRepository.save(projeto);
 
+        projetoEventPublisher.publicarProjetoSubmetido(montarEvento(projetoSalvo, dto));
+
         return projetoMapper.toResponseDTO(projetoSalvo);
+    }
+
+    private ProjetoSubmetidoEvent montarEvento(Projetos projeto, ProjetoRequestDTO dto) {
+
+        List<ProjetoSubmetidoEvent.AutorEvent> autores = dto.getAutores()
+                .stream()
+                .map(a -> new ProjetoSubmetidoEvent.AutorEvent(a.getNome(), a.getEmail()))
+                .toList();
+
+        List<ProjetoSubmetidoEvent.ProfessorEvent> professores = dto.getProfessores()
+                .stream()
+                .map(p -> new ProjetoSubmetidoEvent.ProfessorEvent(p.getProfessorId(), p.getPapel().name()))
+                .toList();
+
+        return new ProjetoSubmetidoEvent(
+                projeto.getId(),
+                dto.getNome(),
+                dto.getTipoProjeto().name(),
+                projeto.getStatusProjeto().name(),
+                dto.getCursoId(),
+                autores,
+                professores,
+                LocalDateTime.now());
     }
 
     @Transactional(readOnly = true)
@@ -248,4 +285,26 @@ public class ProjetoService {
 
         projeto.setDocumentos(new ArrayList<>(documentos));
     }
+
+
+    private void validarDisciplinas(ProjetoRequestDTO dto) {
+
+        List<DisciplinaDTO> disciplinas = disciplinaClient.buscarPorCurso(
+                dto.getCursoId());
+
+        for (Long disciplinaId : dto.getDisciplinaIds()) {
+
+            boolean pertenceAoCurso = disciplinas.stream()
+                    .anyMatch(disciplina ->
+                            disciplina.id().equals(disciplinaId)
+                                    && disciplina.cursoId().equals(dto.getCursoId()));
+
+            if (!pertenceAoCurso) {
+                throw new ResourceNotFoundException(
+                        "Disciplina não encontrada no curso informado. ID: "
+                                + disciplinaId);
+            }
+        }
+    }
+
 }
