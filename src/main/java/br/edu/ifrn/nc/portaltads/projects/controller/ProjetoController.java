@@ -31,9 +31,11 @@ public class ProjetoController {
     @ApiResponse(responseCode = "400", description = "Dados inválidos")
     @ApiResponse(responseCode = "409", description = "Já existe um projeto com esse nome")
     @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
-    public ResponseEntity<ProjetoResponseDTO> cadastrar (@Valid @RequestBody ProjetoRequestDTO dto){
+    public ResponseEntity<ProjetoResponseDTO> cadastrar (
+            @Valid @RequestBody ProjetoRequestDTO dto,
+            @RequestHeader("Authorization") String token){
 
-        ProjetoResponseDTO responseDTO = projetoService.cadastrar(dto);
+        ProjetoResponseDTO responseDTO = projetoService.cadastrar(dto, token);
 
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()

@@ -180,7 +180,7 @@ class ProjetoServiceTest {
                 .thenReturn(responseDTO);
 
         // WHEN
-        ProjetoResponseDTO resultado = projetoService.cadastrar(dto);
+        ProjetoResponseDTO resultado = projetoService.cadastrar(dto, "Bearer token-teste");;
 
         // THEN
         assertThat(resultado)
@@ -218,7 +218,7 @@ class ProjetoServiceTest {
         // WHEN
         ConflictException exception = assertThrows(
                 ConflictException.class,
-                () -> projetoService.cadastrar(dto)
+                () -> projetoService.cadastrar(dto, "Bearer token-teste")
         );
 
         // THEN
@@ -251,7 +251,7 @@ class ProjetoServiceTest {
         // WHEN
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> projetoService.cadastrar(dto)
+                () -> projetoService.cadastrar(dto, "Bearer token-teste")
         );
 
         // THEN
@@ -309,7 +309,7 @@ class ProjetoServiceTest {
                 .thenReturn(responseDTO);
 
         // WHEN
-        ProjetoResponseDTO resultado = projetoService.cadastrar(dto);
+        ProjetoResponseDTO resultado = projetoService.cadastrar(dto, "Bearer token-teste");
 
         // THEN
         assertThat(resultado).isNotNull().isEqualTo(responseDTO);

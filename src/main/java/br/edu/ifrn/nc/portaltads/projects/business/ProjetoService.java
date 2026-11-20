@@ -9,6 +9,7 @@ import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
 import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
 import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
 import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
+import br.edu.ifrn.nc.portaltads.projects.client.ProfessorClient;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.*;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.PapelProjetoProfessor;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
@@ -40,7 +41,7 @@ public class ProjetoService {
     private final ProfessorClient professorClient;
 
     @Transactional
-    public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto) {
+    public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto, String token) {
 
         cursoClient.buscarPorID(dto.getCursoId());
         validarDisciplinas(dto);
