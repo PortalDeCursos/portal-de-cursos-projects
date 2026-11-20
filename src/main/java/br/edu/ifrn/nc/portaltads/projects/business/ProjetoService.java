@@ -51,6 +51,7 @@ public class ProjetoService {
         }
 
         validarOrientador(dto);
+        validarProfessores(dto, token);
 
         Projetos projeto = projetoMapper.toEntity(dto);
         projeto.setStatusProjeto(StatusProjeto.EM_ANALISE);
@@ -306,6 +307,13 @@ public class ProjetoService {
                         "Disciplina não encontrada no curso informado. ID: "
                                 + disciplinaId);
             }
+        }
+    }
+
+    private void validarProfessores(ProjetoRequestDTO dto, String token) {
+
+        for (var professor : dto.getProfessores()) {
+            professorClient.buscarPorId(professor.getProfessorId(), token);
         }
     }
 
