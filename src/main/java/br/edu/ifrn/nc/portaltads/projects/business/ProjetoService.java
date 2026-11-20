@@ -37,6 +37,7 @@ public class ProjetoService {
     private final ProjetoEventPublisher projetoEventPublisher;
     private final CursoClient cursoClient;
     private final DisciplinaClient disciplinaClient;
+    private final ProfessorClient professorClient;
 
     @Transactional
     public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto) {
