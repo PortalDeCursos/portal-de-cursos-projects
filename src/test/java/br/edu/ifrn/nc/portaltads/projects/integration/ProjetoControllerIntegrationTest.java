@@ -8,6 +8,7 @@ import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublish
 import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
 import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
 import br.edu.ifrn.nc.portaltads.projects.client.ProfessorClient;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.AcessoNegadoException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.TokenInvalidoException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoRepository;
 import org.junit.jupiter.api.Test;
@@ -212,6 +213,53 @@ class ProjetoControllerIntegrationTest {
                         .content(json))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Não autenticado"));
+
+        verify(professorClient).buscarPorId(10L, token);
+    }
+
+    @Test
+    void deveRetornarForbiddenQuandoUsuarioNaoTiverPermissao() throws Exception {
+        configurarIntegracoesExternas();
+
+        String token = "Bearer token-sem-permissao";
+
+        when(professorClient.buscarPorId(eq(10L), eq(token)))
+                .thenThrow(new AcessoNegadoException(
+                        "Você não tem permissão para consultar este professor."
+                ));
+
+        String json = """
+        {
+            "cursoId": 1,
+            "campusId": 1,
+            "autores": [
+                {
+                    "nome": "Autor Teste",
+                    "email": "autor@teste.com"
+                }
+            ],
+            "disciplinaIds": [1, 2],
+            "nome": "Projeto Com Acesso Negado",
+            "descricao": "Descricao do projeto",
+            "resumo": "Resumo do projeto",
+            "tipoProjeto": "TCC",
+            "dataInicio": "2026-11-20",
+            "dataFim": "2027-06-20",
+            "professores": [
+                {
+                    "professorId": 10,
+                    "papel": "ORIENTADOR"
+                }
+            ]
+        }
+        """;
+
+        mockMvc.perform(post("/projetos")
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.title").value("Acesso negado"));
 
         verify(professorClient).buscarPorId(10L, token);
     }
