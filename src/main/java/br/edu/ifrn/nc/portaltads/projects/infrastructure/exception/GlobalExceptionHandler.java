@@ -183,6 +183,40 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(TokenInvalidoException.class)
+    public ProblemDetail handleTokenInvalido(TokenInvalidoException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, ex.getMessage());
+
+        problem.setTitle("Não autenticado");
+
+        return problem;
+    }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ProblemDetail handleAcessoNegado(AcessoNegadoException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN, ex.getMessage());
+
+        problem.setTitle("Acesso negado");
+
+        return problem;
+    }
+
+    @ExceptionHandler(ServicoUsuariosIndisponivelException.class)
+    public ProblemDetail handleServicoUsuariosIndisponivel(
+            ServicoUsuariosIndisponivelException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+
+        problem.setTitle("Serviço de usuários indisponível");
+
+        return problem;
+    }
+
     private Map<String, String> extractErrors(
             MethodArgumentNotValidException ex) {
 
