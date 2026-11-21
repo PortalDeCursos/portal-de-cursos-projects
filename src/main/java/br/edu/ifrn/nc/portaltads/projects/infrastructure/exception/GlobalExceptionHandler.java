@@ -217,6 +217,32 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(CampusNaoEncontradoException.class)
+    public ProblemDetail handleCampusNaoEncontrado(
+            CampusNaoEncontradoException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage());
+
+        problem.setTitle("Campus não encontrado");
+
+        return problem;
+    }
+
+    @ExceptionHandler(ServicoCampusIndisponivelException.class)
+    public ProblemDetail handleServicoCampusIndisponivel(
+            ServicoCampusIndisponivelException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                ex.getMessage());
+
+        problem.setTitle("Serviço de campus indisponível");
+
+        return problem;
+    }
+
     private Map<String, String> extractErrors(
             MethodArgumentNotValidException ex) {
 

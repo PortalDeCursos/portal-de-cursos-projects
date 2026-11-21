@@ -7,6 +7,7 @@ import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseD
 import br.edu.ifrn.nc.portaltads.projects.business.event.ProjetoSubmetidoEvent;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
 import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
+import br.edu.ifrn.nc.portaltads.projects.client.CampusClient;
 import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
 import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
 import br.edu.ifrn.nc.portaltads.projects.client.ProfessorClient;
@@ -39,10 +40,12 @@ public class ProjetoService {
     private final CursoClient cursoClient;
     private final DisciplinaClient disciplinaClient;
     private final ProfessorClient professorClient;
+    private final CampusClient campusClient;
 
     @Transactional
     public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto, String token) {
 
+        campusClient.buscarPorID(dto.getCampusId());
         cursoClient.buscarPorID(dto.getCursoId());
         validarDisciplinas(dto);
 
@@ -117,8 +120,11 @@ public class ProjetoService {
     }
 
     @Transactional
-    public ProjetoResponseDTO atualizar(Long id, ProjetoRequestDTO dto){
+    public ProjetoResponseDTO atualizar(Long id, ProjetoRequestDTO dto) {
         Projetos projeto = buscarProjetoExistente(id);
+
+        campusClient.buscarPorID(dto.getCampusId());
+        cursoClient.buscarPorID(dto.getCursoId());
 
         if (projetoRepository.existsByNomeAndIdNot(dto.getNome(), id)) {
             throw new ConflictException("Já existe outro projeto cadastrado com esse nome.");
