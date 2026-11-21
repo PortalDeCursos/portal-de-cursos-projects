@@ -7,13 +7,18 @@ import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseD
 import br.edu.ifrn.nc.portaltads.projects.business.event.ProjetoSubmetidoEvent;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
 import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
+import br.edu.ifrn.nc.portaltads.projects.client.CampusClient;
 import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
 import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
+import br.edu.ifrn.nc.portaltads.projects.client.ProfessorClient;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.*;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.PapelProjetoProfessor;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.AcessoNegadoException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ConflictException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ResourceNotFoundException;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.AutorProjetoRepository;
+import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoProfessorRepository;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoRepository;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.storage.ArmazenamentoArquivo;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +26,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Base64;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -32,15 +40,20 @@ import java.util.List;
 public class ProjetoService {
 
     private final ProjetoRepository projetoRepository;
+    private final AutorProjetoRepository autorProjetoRepository;
+    private final ProjetoProfessorRepository projetoProfessorRepository;
     private final ProjetoMapper projetoMapper;
     private final ArmazenamentoArquivo armazenamentoArquivo;
     private final ProjetoEventPublisher projetoEventPublisher;
     private final CursoClient cursoClient;
     private final DisciplinaClient disciplinaClient;
+    private final ProfessorClient professorClient;
+    private final CampusClient campusClient;
 
     @Transactional
-    public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto) {
+    public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto, String token) {
 
+        campusClient.buscarPorID(dto.getCampusId());
         cursoClient.buscarPorID(dto.getCursoId());
         validarDisciplinas(dto);
 
@@ -49,6 +62,7 @@ public class ProjetoService {
         }
 
         validarOrientador(dto);
+        validarProfessores(dto, token);
 
         Projetos projeto = projetoMapper.toEntity(dto);
         projeto.setStatusProjeto(StatusProjeto.EM_ANALISE);
@@ -114,8 +128,18 @@ public class ProjetoService {
     }
 
     @Transactional
-    public ProjetoResponseDTO atualizar(Long id, ProjetoRequestDTO dto){
+    public ProjetoResponseDTO atualizar(Long id, ProjetoRequestDTO dto, String token) {
         Projetos projeto = buscarProjetoExistente(id);
+
+        String[] dadosToken = extrairDadosToken(token);
+
+        String email = dadosToken[0];
+        String papel = dadosToken[1];
+
+        verificarPermissaoAtualizacao(projeto, email, papel, token);
+
+        campusClient.buscarPorID(dto.getCampusId());
+        cursoClient.buscarPorID(dto.getCursoId());
 
         if (projetoRepository.existsByNomeAndIdNot(dto.getNome(), id)) {
             throw new ConflictException("Já existe outro projeto cadastrado com esse nome.");
@@ -162,34 +186,39 @@ public class ProjetoService {
 
 
     @Transactional
-    public ProjetoResponseDTO atualizarStatus(Long id, StatusProjetoRequestDTO dto){
+    public ProjetoResponseDTO atualizarStatus(
+            Long id, StatusProjetoRequestDTO dto, String token) {
 
         Projetos projeto = buscarProjetoExistente(id);
+
+        String[] dadosToken = extrairDadosToken(token);
+
+        String email = dadosToken[0];
+        String papel = dadosToken[1];
+
+        verificarPermissaoAlteracaoStatus(projeto, email, papel, token);
 
         StatusProjeto statusAtual = projeto.getStatusProjeto();
         StatusProjeto novoStatus = dto.getStatusProjeto();
 
-        boolean transicaoValida = switch (statusAtual){
+        boolean transicaoValida = switch (statusAtual) {
             case EM_ANALISE ->
                     novoStatus == StatusProjeto.APROVADO || novoStatus == StatusProjeto.RECUSADO;
             case APROVADO ->
                     novoStatus == StatusProjeto.ANALISE_PUBLICACAO;
             case ANALISE_PUBLICACAO ->
                     novoStatus == StatusProjeto.PUBLICADO || novoStatus == StatusProjeto.RECUSADO_PUBLICACAO;
-
             case RECUSADO_PUBLICACAO ->
                     novoStatus == StatusProjeto.REVISAO;
-
             case REVISAO ->
                     novoStatus == StatusProjeto.EM_ANALISE;
-
             case RECUSADO, PUBLICADO -> false;
         };
 
-        if (!transicaoValida){
+        if (!transicaoValida) {
             throw new IllegalArgumentException(
                     "Não é permitida a alteração do status "
-            + statusAtual + " para " +novoStatus + ".");
+                            + statusAtual + " para " + novoStatus + ".");
         }
 
         projeto.setStatusProjeto(novoStatus);
@@ -197,7 +226,6 @@ public class ProjetoService {
         Projetos projetoAtualizado = projetoRepository.save(projeto);
 
         return projetoMapper.toResponseDTO(projetoAtualizado);
-
     }
 
     private Projetos buscarProjetoExistente(Long id){
@@ -304,6 +332,97 @@ public class ProjetoService {
                         "Disciplina não encontrada no curso informado. ID: "
                                 + disciplinaId);
             }
+        }
+    }
+
+    private void validarProfessores(ProjetoRequestDTO dto, String token) {
+
+        for (var professor : dto.getProfessores()) {
+            professorClient.buscarPorId(professor.getProfessorId(), token);
+        }
+    }
+
+    private void verificarPermissaoAtualizacao(
+            Projetos projeto, String email, String papel, String token) {
+
+        if ("ALUNO".equals(papel)) {
+
+            boolean eAutor = autorProjetoRepository
+                    .existsByProjetoIdAndEmail(projeto.getId(), email);
+
+            if (!eAutor) {
+                throw new AcessoNegadoException(
+                        "Você não tem permissão para atualizar este projeto.");
+            }
+
+        } else if ("PROFESSOR".equals(papel)) {
+
+            List<ProjetoProfessor> professores =
+                    projetoProfessorRepository.findByProjeto_id(projeto.getId());
+
+            boolean eOrientador = professores.stream()
+                    .filter(p -> p.getPapel() == PapelProjetoProfessor.ORIENTADOR)
+                    .anyMatch(p -> {
+                        var professorDTO = professorClient.buscarPorId(
+                                p.getProfessorId(), token);
+
+                        return professorDTO.usuario().email().equals(email);
+                    });
+
+            if (!eOrientador) {
+                throw new AcessoNegadoException(
+                        "Você não tem permissão para atualizar este projeto.");
+            }
+
+        } else {
+            throw new AcessoNegadoException(
+                    "Seu papel não permite atualizar projetos.");
+        }
+    }
+
+    private void verificarPermissaoAlteracaoStatus(
+            Projetos projeto, String email, String papel, String token) {
+
+        if (!"PROFESSOR".equals(papel)) {
+            throw new AcessoNegadoException(
+                    "Somente o professor orientador pode alterar o status do projeto.");
+        }
+
+        List<ProjetoProfessor> professores =
+                projetoProfessorRepository.findByProjeto_id(projeto.getId());
+
+        boolean eOrientador = professores.stream()
+                .filter(p -> p.getPapel() == PapelProjetoProfessor.ORIENTADOR)
+                .anyMatch(p -> {
+                    var professorDTO = professorClient.buscarPorId(
+                            p.getProfessorId(), token);
+
+                    return professorDTO.usuario().email().equals(email);
+                });
+
+        if (!eOrientador) {
+            throw new AcessoNegadoException(
+                    "Você não tem permissão para alterar o status deste projeto.");
+        }
+    }
+
+    private String[] extrairDadosToken(String token) {
+        try {
+            String tokenLimpo = token.replace("Bearer ", "");
+            String[] partes = tokenLimpo.split("\\.");
+
+            byte[] payload = Base64.getUrlDecoder().decode(partes[1]);
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode dados = mapper.readTree(payload);
+
+            String email = dados.get("sub").asText();
+            String papel = dados.get("role").asText();
+
+            return new String[]{email, papel};
+
+        } catch (Exception e) {
+            throw new AcessoNegadoException("Token inválido.");
         }
     }
 

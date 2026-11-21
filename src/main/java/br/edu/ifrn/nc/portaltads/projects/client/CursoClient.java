@@ -4,18 +4,20 @@ import br.edu.ifrn.nc.portaltads.projects.business.dto.CursoDTO;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.CursoNaoEncontradoException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ErroIntegracaoException;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.exception.ServicoCursoIndisponivelException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Component
-@RequiredArgsConstructor
 public class CursoClient {
 
     private final WebClient webClient;
 
+    public CursoClient(@Qualifier("cursosWebClient") WebClient webClient) {
+        this.webClient = webClient;
+    }
     public CursoDTO buscarPorID(Long id) {
 
         try {
