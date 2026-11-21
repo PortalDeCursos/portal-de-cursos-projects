@@ -71,8 +71,12 @@ public class ProjetoController {
     @ApiResponse(responseCode = "404", description = "Projeto não encontrado")
     @ApiResponse(responseCode = "409", description = "Já existe outro projeto com esse nome")
     @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
-    public ResponseEntity<ProjetoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody ProjetoRequestDTO dto){
-        return ResponseEntity.ok(projetoService.atualizar(id, dto));
+    public ResponseEntity<ProjetoResponseDTO> atualizar(
+            @PathVariable Long id,
+            @Valid @RequestBody ProjetoRequestDTO dto,
+            @RequestHeader("Authorization") String token) {
+
+        return ResponseEntity.ok(projetoService.atualizar(id, dto, token));
     }
 
     @GetMapping("/em-analise")
