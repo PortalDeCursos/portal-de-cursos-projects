@@ -101,8 +101,9 @@ public class ProjetoController {
     @ApiResponse(responseCode = "400", description = "Transição de status inválida")
     @ApiResponse(responseCode = "404", description = "Projeto não encontrado")
     @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
-    public ResponseEntity<ProjetoResponseDTO> atualizarStatus(@PathVariable Long id, @Valid @RequestBody StatusProjetoRequestDTO dto){
-        return ResponseEntity.ok(projetoService.atualizarStatus(id, dto));
+    public ResponseEntity<ProjetoResponseDTO> atualizarStatus(
+            @PathVariable Long id, @Valid @RequestBody StatusProjetoRequestDTO dto,@RequestHeader("Authorization") String token){
+        return ResponseEntity.ok(projetoService.atualizarStatus(id, dto, token));
     }
 
     @DeleteMapping("/{id}")

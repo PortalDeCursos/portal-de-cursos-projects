@@ -131,6 +131,13 @@ public class ProjetoService {
     public ProjetoResponseDTO atualizar(Long id, ProjetoRequestDTO dto, String token) {
         Projetos projeto = buscarProjetoExistente(id);
 
+        String[] dadosToken = extrairDadosToken(token);
+
+        String email = dadosToken[0];
+        String papel = dadosToken[1];
+
+        verificarPermissaoAtualizacao(projeto, email, papel, token);
+
         campusClient.buscarPorID(dto.getCampusId());
         cursoClient.buscarPorID(dto.getCursoId());
 
@@ -179,34 +186,39 @@ public class ProjetoService {
 
 
     @Transactional
-    public ProjetoResponseDTO atualizarStatus(Long id, StatusProjetoRequestDTO dto){
+    public ProjetoResponseDTO atualizarStatus(
+            Long id, StatusProjetoRequestDTO dto, String token) {
 
         Projetos projeto = buscarProjetoExistente(id);
+
+        String[] dadosToken = extrairDadosToken(token);
+
+        String email = dadosToken[0];
+        String papel = dadosToken[1];
+
+        verificarPermissaoAlteracaoStatus(projeto, email, papel, token);
 
         StatusProjeto statusAtual = projeto.getStatusProjeto();
         StatusProjeto novoStatus = dto.getStatusProjeto();
 
-        boolean transicaoValida = switch (statusAtual){
+        boolean transicaoValida = switch (statusAtual) {
             case EM_ANALISE ->
                     novoStatus == StatusProjeto.APROVADO || novoStatus == StatusProjeto.RECUSADO;
             case APROVADO ->
                     novoStatus == StatusProjeto.ANALISE_PUBLICACAO;
             case ANALISE_PUBLICACAO ->
                     novoStatus == StatusProjeto.PUBLICADO || novoStatus == StatusProjeto.RECUSADO_PUBLICACAO;
-
             case RECUSADO_PUBLICACAO ->
                     novoStatus == StatusProjeto.REVISAO;
-
             case REVISAO ->
                     novoStatus == StatusProjeto.EM_ANALISE;
-
             case RECUSADO, PUBLICADO -> false;
         };
 
-        if (!transicaoValida){
+        if (!transicaoValida) {
             throw new IllegalArgumentException(
                     "Não é permitida a alteração do status "
-            + statusAtual + " para " +novoStatus + ".");
+                            + statusAtual + " para " + novoStatus + ".");
         }
 
         projeto.setStatusProjeto(novoStatus);
@@ -214,7 +226,6 @@ public class ProjetoService {
         Projetos projetoAtualizado = projetoRepository.save(projeto);
 
         return projetoMapper.toResponseDTO(projetoAtualizado);
-
     }
 
     private Projetos buscarProjetoExistente(Long id){
@@ -366,6 +377,52 @@ public class ProjetoService {
         } else {
             throw new AcessoNegadoException(
                     "Seu papel não permite atualizar projetos.");
+        }
+    }
+
+    private void verificarPermissaoAlteracaoStatus(
+            Projetos projeto, String email, String papel, String token) {
+
+        if (!"PROFESSOR".equals(papel)) {
+            throw new AcessoNegadoException(
+                    "Somente o professor orientador pode alterar o status do projeto.");
+        }
+
+        List<ProjetoProfessor> professores =
+                projetoProfessorRepository.findByProjeto_id(projeto.getId());
+
+        boolean eOrientador = professores.stream()
+                .filter(p -> p.getPapel() == PapelProjetoProfessor.ORIENTADOR)
+                .anyMatch(p -> {
+                    var professorDTO = professorClient.buscarPorId(
+                            p.getProfessorId(), token);
+
+                    return professorDTO.usuario().email().equals(email);
+                });
+
+        if (!eOrientador) {
+            throw new AcessoNegadoException(
+                    "Você não tem permissão para alterar o status deste projeto.");
+        }
+    }
+
+    private String[] extrairDadosToken(String token) {
+        try {
+            String tokenLimpo = token.replace("Bearer ", "");
+            String[] partes = tokenLimpo.split("\\.");
+
+            byte[] payload = Base64.getUrlDecoder().decode(partes[1]);
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode dados = mapper.readTree(payload);
+
+            String email = dados.get("sub").asText();
+            String papel = dados.get("role").asText();
+
+            return new String[]{email, papel};
+
+        } catch (Exception e) {
+            throw new AcessoNegadoException("Token inválido.");
         }
     }
 
