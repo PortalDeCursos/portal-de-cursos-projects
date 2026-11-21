@@ -1,11 +1,18 @@
 
 package br.edu.ifrn.nc.portaltads.projects.business;
 
+import br.edu.ifrn.nc.portaltads.projects.business.dto.CursoDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.DisciplinaDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.ProfessorDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.AutorProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoProfessorRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
+import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
+import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
+import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
+import br.edu.ifrn.nc.portaltads.projects.client.ProfessorClient;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.Projetos;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.PapelProjetoProfessor;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
@@ -42,6 +49,18 @@ class ProjetoServiceTest {
 
     @Mock
     private ArmazenamentoArquivo armazenamentoArquivo;
+
+    @Mock
+    private CursoClient cursoClient;
+
+    @Mock
+    private DisciplinaClient disciplinaClient;
+
+    @Mock
+    private ProfessorClient professorClient;
+
+    @Mock
+    private ProjetoEventPublisher projetoEventPublisher;
 
     @InjectMocks
     private ProjetoService projetoService;
@@ -167,6 +186,19 @@ class ProjetoServiceTest {
         dto.setProfessores(List.of(professorDTO));
         dto.setDocumentos(null);
 
+        when(disciplinaClient.buscarPorCurso(1L))
+                .thenReturn(List.of(new DisciplinaDTO(1L, 1L)));
+
+        when(cursoClient.buscarPorID(1L))
+                .thenReturn(new CursoDTO(1L));
+
+        when(professorClient.buscarPorId(1L, "Bearer token-teste"))
+                .thenReturn(new ProfessorDTO(
+                        1L,
+                        null,
+                        1L
+                ));
+
         when(projetoRepository.existsByNome(dto.getNome()))
                 .thenReturn(false);
 
@@ -180,7 +212,7 @@ class ProjetoServiceTest {
                 .thenReturn(responseDTO);
 
         // WHEN
-        ProjetoResponseDTO resultado = projetoService.cadastrar(dto);
+        ProjetoResponseDTO resultado = projetoService.cadastrar(dto, "Bearer token-teste");
 
         // THEN
         assertThat(resultado)
@@ -211,6 +243,14 @@ class ProjetoServiceTest {
         // GIVEN
         ProjetoRequestDTO dto = new ProjetoRequestDTO();
         dto.setNome("Projeto SmartNose");
+        dto.setCursoId(1L);
+        dto.setDisciplinaIds(List.of(1L));
+
+        when(cursoClient.buscarPorID(1L))
+                .thenReturn(new CursoDTO(1L));
+
+        when(disciplinaClient.buscarPorCurso(1L))
+                .thenReturn(List.of(new DisciplinaDTO(1L, 1L)));
 
         when(projetoRepository.existsByNome(dto.getNome()))
                 .thenReturn(true);
@@ -218,7 +258,7 @@ class ProjetoServiceTest {
         // WHEN
         ConflictException exception = assertThrows(
                 ConflictException.class,
-                () -> projetoService.cadastrar(dto)
+                () -> projetoService.cadastrar(dto, "Bearer token-teste")
         );
 
         // THEN
@@ -238,6 +278,14 @@ class ProjetoServiceTest {
         // GIVEN
         ProjetoRequestDTO dto = new ProjetoRequestDTO();
         dto.setNome("Projeto SmartNose");
+        dto.setCursoId(1L);
+        dto.setDisciplinaIds(List.of(1L));
+
+        when(cursoClient.buscarPorID(1L))
+                .thenReturn(new CursoDTO(1L));
+
+        when(disciplinaClient.buscarPorCurso(1L))
+                .thenReturn(List.of(new DisciplinaDTO(1L, 1L)));
         dto.setProfessores(List.of(
                 new ProjetoProfessorRequestDTO(
                         1L,
@@ -251,7 +299,7 @@ class ProjetoServiceTest {
         // WHEN
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> projetoService.cadastrar(dto)
+                () -> projetoService.cadastrar(dto, "Bearer token-teste")
         );
 
         // THEN
@@ -296,6 +344,18 @@ class ProjetoServiceTest {
         dto.setProfessores(List.of(professorDTO));
         dto.setDocumentos(null);
 
+        when(cursoClient.buscarPorID(1L))
+                .thenReturn(new CursoDTO(1L));
+
+        when(disciplinaClient.buscarPorCurso(1L))
+                .thenReturn(List.of(
+                        new DisciplinaDTO(1L, 1L),
+                        new DisciplinaDTO(2L, 1L)
+                ));
+
+        when(professorClient.buscarPorId(1L, "Bearer token-teste"))
+                .thenReturn(new ProfessorDTO(1L, null, 1L));
+
         when(projetoRepository.existsByNome(dto.getNome()))
                 .thenReturn(false);
 
@@ -309,7 +369,7 @@ class ProjetoServiceTest {
                 .thenReturn(responseDTO);
 
         // WHEN
-        ProjetoResponseDTO resultado = projetoService.cadastrar(dto);
+        ProjetoResponseDTO resultado = projetoService.cadastrar(dto, "Bearer token-teste");
 
         // THEN
         assertThat(resultado).isNotNull().isEqualTo(responseDTO);
