@@ -1,16 +1,15 @@
 package br.edu.ifrn.nc.portaltads.projects.business;
 
 import br.edu.ifrn.nc.portaltads.projects.business.dto.DisciplinaDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.ProfessorDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.StatusProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.event.ProjetoStatusAlteradoEvent;
 import br.edu.ifrn.nc.portaltads.projects.business.event.ProjetoSubmetidoEvent;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
 import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
-import br.edu.ifrn.nc.portaltads.projects.client.CampusClient;
-import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
-import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
-import br.edu.ifrn.nc.portaltads.projects.client.ProfessorClient;
+import br.edu.ifrn.nc.portaltads.projects.client.*;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.entity.*;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.PapelProjetoProfessor;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.enums.StatusProjeto;
@@ -21,6 +20,7 @@ import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.AutorProjeto
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoProfessorRepository;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.repository.ProjetoRepository;
 import br.edu.ifrn.nc.portaltads.projects.infrastructure.storage.ArmazenamentoArquivo;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,7 +34,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class ProjetoService {
@@ -49,6 +51,7 @@ public class ProjetoService {
     private final DisciplinaClient disciplinaClient;
     private final ProfessorClient professorClient;
     private final CampusClient campusClient;
+    private final CoordenadorClient coordenadorClient;
 
     @Transactional
     public ProjetoResponseDTO cadastrar (ProjetoRequestDTO dto, String token) {
@@ -75,12 +78,12 @@ public class ProjetoService {
 
         Projetos projetoSalvo = projetoRepository.save(projeto);
 
-        projetoEventPublisher.publicarProjetoSubmetido(montarEvento(projetoSalvo, dto));
+        projetoEventPublisher.publicarProjetoSubmetido(montarEvento(projetoSalvo, dto, token));
 
         return projetoMapper.toResponseDTO(projetoSalvo);
     }
 
-    private ProjetoSubmetidoEvent montarEvento(Projetos projeto, ProjetoRequestDTO dto) {
+    private ProjetoSubmetidoEvent montarEvento(Projetos projeto, ProjetoRequestDTO dto, String token) {
 
         List<ProjetoSubmetidoEvent.AutorEvent> autores = dto.getAutores()
                 .stream()
@@ -89,7 +92,10 @@ public class ProjetoService {
 
         List<ProjetoSubmetidoEvent.ProfessorEvent> professores = dto.getProfessores()
                 .stream()
-                .map(p -> new ProjetoSubmetidoEvent.ProfessorEvent(p.getProfessorId(), p.getPapel().name()))
+                .map(p -> new ProjetoSubmetidoEvent.ProfessorEvent(
+                        p.getProfessorId(),
+                        p.getPapel().name(),
+                        professorClient.buscarPorId(p.getProfessorId(), token).usuario().email()))
                 .toList();
 
         return new ProjetoSubmetidoEvent(
@@ -225,7 +231,71 @@ public class ProjetoService {
 
         Projetos projetoAtualizado = projetoRepository.save(projeto);
 
+        notificarMudancaStatus(projetoAtualizado, novoStatus, email, token);
+
         return projetoMapper.toResponseDTO(projetoAtualizado);
+    }
+
+    private void notificarMudancaStatus(Projetos projeto, StatusProjeto novoStatus,
+                                        String emailLogado, String token) {
+        try {
+            List<ProfessorDTO> professores = projetoProfessorRepository
+                    .findByProjeto_id(projeto.getId())
+                    .stream()
+                    .map(v -> professorClient.buscarPorId(v.getProfessorId(), token))
+                    .toList();
+
+            List<String> emailsAlunos = projeto.getAutores().stream()
+                    .map(AutorProjeto::getEmail)
+                    .toList();
+
+            List<String> emailsProfessores = professores.stream()
+                    .map(p -> p.usuario().email())
+                    .toList();
+
+            String nomeResponsavel = professores.stream()
+                    .filter(p -> p.usuario().email().equals(emailLogado))
+                    .map(p -> p.usuario().nome())
+                    .findFirst()
+                    .orElse("Professor orientador");
+
+            List<String> destinatarios = switch (novoStatus) {
+                case EM_ANALISE, PUBLICADO, RECUSADO_PUBLICACAO, REVISAO ->
+                        juntar(emailsAlunos, emailsProfessores);
+                case APROVADO, RECUSADO -> emailsAlunos;
+                case ANALISE_PUBLICACAO -> List.of(buscarEmailCoordenador(projeto.getCursoId(), token));
+            };
+
+            projetoEventPublisher.publicarStatusAlterado(new ProjetoStatusAlteradoEvent(
+                    projeto.getId(),
+                    projeto.getNome(),
+                    projeto.getTipoProjeto().name(),
+                    novoStatus.name(),
+                    nomeResponsavel,
+                    destinatarios,
+                    LocalDateTime.now()));
+
+        } catch (Exception e) {
+            log.error("Status do projeto {} foi alterado, mas a notificação falhou: {}",
+                    projeto.getId(), e.getMessage());
+        }
+    }
+
+    private String buscarEmailCoordenador(Long cursoId, String token) {
+
+        var curso = cursoClient.buscarPorID(cursoId);
+
+        if (curso.coordenadorId() == null) {
+            throw new ResourceNotFoundException("Curso " + cursoId + " não possui coordenador designado.");
+        }
+
+        return coordenadorClient.buscarPorId(curso.coordenadorId(), token)
+                .professor().usuario().email();
+    }
+
+    private List<String> juntar(List<String> a, List<String> b) {
+
+        return Stream.concat(a.stream(), b.stream()).distinct().toList();
     }
 
     private Projetos buscarProjetoExistente(Long id){
