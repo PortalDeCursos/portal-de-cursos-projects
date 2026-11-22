@@ -16,6 +16,9 @@ public class RabbitConfig {
     public static final String QUEUE_PROJETO_SUBMETIDO = "portaltads.projeto-submetido.queue";
     public static final String ROUTING_KEY_PROJETO_SUBMETIDO = "projeto.submetido";
 
+    public static final String QUEUE_PROJETO_STATUS = "portaltads.projeto-status.queue";
+    public static final String ROUTING_KEY_PROJETO_STATUS = "projeto.status-alterado";
+
     @Bean
     public TopicExchange projetosExchange() {
 
@@ -40,5 +43,19 @@ public class RabbitConfig {
     public MessageConverter jsonMessageConverter() {
 
         return new JacksonJsonMessageConverter();
+    }
+
+    @Bean
+    public Queue projetoStatusQueue() {
+
+        return new Queue(QUEUE_PROJETO_STATUS, true);
+    }
+
+    @Bean
+    public Binding projetoStatusBinding(Queue projetoStatusQueue, TopicExchange projetosExchange) {
+
+        return BindingBuilder.bind(projetoStatusQueue)
+                .to(projetosExchange)
+                .with(ROUTING_KEY_PROJETO_STATUS);
     }
 }

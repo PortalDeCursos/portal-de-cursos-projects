@@ -17,5 +17,5 @@ public record ProjetoSubmetidoEvent(
 
     public record AutorEvent(String nome, String email) {}
 
-    public record ProfessorEvent(Long professorId, String papel) {}
+    public record ProfessorEvent(Long professorId, String papel, String email) {}
 }
