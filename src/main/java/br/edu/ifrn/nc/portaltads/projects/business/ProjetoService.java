@@ -202,10 +202,11 @@ public class ProjetoService {
         String email = dadosToken[0];
         String papel = dadosToken[1];
 
-        verificarPermissaoAlteracaoStatus(projeto, email, papel, token);
-
         StatusProjeto statusAtual = projeto.getStatusProjeto();
         StatusProjeto novoStatus = dto.getStatusProjeto();
+
+        verificarPermissaoAlteracaoStatus(
+                projeto, email, papel, token, statusAtual, novoStatus);
 
         boolean transicaoValida = switch (statusAtual) {
             case EM_ANALISE ->
@@ -451,29 +452,95 @@ public class ProjetoService {
     }
 
     private void verificarPermissaoAlteracaoStatus(
-            Projetos projeto, String email, String papel, String token) {
+            Projetos projeto,
+            String email,
+            String papel,
+            String token,
+            StatusProjeto statusAtual,
+            StatusProjeto novoStatus) {
 
-        if (!"PROFESSOR".equals(papel)) {
-            throw new AcessoNegadoException(
-                    "Somente o professor orientador pode alterar o status do projeto.");
+        if ("ADMIN".equals(papel)) {
+            return;
         }
 
-        List<ProjetoProfessor> professores =
-                projetoProfessorRepository.findByProjeto_id(projeto.getId());
+        if ("PROFESSOR".equals(papel)) {
 
-        boolean eOrientador = professores.stream()
-                .filter(p -> p.getPapel() == PapelProjetoProfessor.ORIENTADOR)
-                .anyMatch(p -> {
-                    var professorDTO = professorClient.buscarPorId(
-                            p.getProfessorId(), token);
+            boolean transicaoPermitida =
+                    (statusAtual == StatusProjeto.EM_ANALISE
+                            && (novoStatus == StatusProjeto.APROVADO
+                            || novoStatus == StatusProjeto.RECUSADO))
+                            ||
+                            (statusAtual == StatusProjeto.APROVADO
+                                    && novoStatus == StatusProjeto.ANALISE_PUBLICACAO)
+                            ||
+                            (statusAtual == StatusProjeto.REVISAO
+                                    && novoStatus == StatusProjeto.EM_ANALISE);
 
-                    return professorDTO.usuario().email().equals(email);
-                });
+            if (!transicaoPermitida) {
+                throw new AcessoNegadoException(
+                        "O professor orientador não tem permissão para realizar essa alteração de status.");
+            }
 
-        if (!eOrientador) {
-            throw new AcessoNegadoException(
-                    "Você não tem permissão para alterar o status deste projeto.");
+            List<ProjetoProfessor> professores =
+                    projetoProfessorRepository.findByProjeto_id(projeto.getId());
+
+            boolean eOrientador = professores.stream()
+                    .filter(p -> p.getPapel() == PapelProjetoProfessor.ORIENTADOR)
+                    .anyMatch(p -> {
+                        var professorDTO = professorClient.buscarPorId(
+                                p.getProfessorId(), token);
+
+                        return professorDTO.usuario().email().equals(email);
+                    });
+
+            if (!eOrientador) {
+                throw new AcessoNegadoException(
+                        "Somente o professor orientador pode alterar o status deste projeto.");
+            }
+
+            return;
         }
+
+        if ("COORDENADOR".equals(papel)) {
+
+            boolean transicaoPermitida =
+                    (statusAtual == StatusProjeto.ANALISE_PUBLICACAO
+                            && (novoStatus == StatusProjeto.PUBLICADO
+                            || novoStatus == StatusProjeto.RECUSADO_PUBLICACAO))
+                            ||
+                            (statusAtual == StatusProjeto.RECUSADO_PUBLICACAO
+                                    && novoStatus == StatusProjeto.REVISAO);
+
+            if (!transicaoPermitida) {
+                throw new AcessoNegadoException(
+                        "O coordenador não tem permissão para realizar essa alteração de status.");
+            }
+
+            var curso = cursoClient.buscarPorID(projeto.getCursoId());
+
+            if (curso.coordenadorId() == null) {
+                throw new ResourceNotFoundException(
+                        "O curso não possui coordenador designado.");
+            }
+
+            var coordenador = coordenadorClient.buscarPorId(
+                    curso.coordenadorId(), token);
+
+            boolean eCoordenador = coordenador.professor()
+                    .usuario()
+                    .email()
+                    .equals(email);
+
+            if (!eCoordenador) {
+                throw new AcessoNegadoException(
+                        "Somente o coordenador responsável pelo curso pode alterar o status deste projeto.");
+            }
+
+            return;
+        }
+
+        throw new AcessoNegadoException(
+                "Seu papel não permite alterar o status de projetos.");
     }
 
     private String[] extrairDadosToken(String token) {
