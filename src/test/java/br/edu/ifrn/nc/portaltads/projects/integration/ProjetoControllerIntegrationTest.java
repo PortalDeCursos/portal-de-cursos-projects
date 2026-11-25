@@ -1,10 +1,8 @@
 package br.edu.ifrn.nc.portaltads.projects.integration;
 
-import br.edu.ifrn.nc.portaltads.projects.business.dto.CursoDTO;
-import br.edu.ifrn.nc.portaltads.projects.business.dto.DisciplinaDTO;
-import br.edu.ifrn.nc.portaltads.projects.business.dto.ProfessorDTO;
-import br.edu.ifrn.nc.portaltads.projects.business.dto.UsuarioDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.*;
 import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
+import br.edu.ifrn.nc.portaltads.projects.client.CampusClient;
 import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
 import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
 import br.edu.ifrn.nc.portaltads.projects.client.ProfessorClient;
@@ -50,6 +48,9 @@ class ProjetoControllerIntegrationTest {
     private CursoClient cursoClient;
 
     @MockitoBean
+    private CampusClient campusClient;
+
+    @MockitoBean
     private DisciplinaClient disciplinaClient;
 
     @MockitoBean
@@ -60,9 +61,13 @@ class ProjetoControllerIntegrationTest {
 
     private void configurarIntegracoesExternas() {
 
+        // Simula um campus existente
+        when(campusClient.buscarPorID(1L))
+                .thenReturn(new CampusDTO(1L));
+
         // Simula um curso existente
         when(cursoClient.buscarPorID(1L))
-                .thenReturn(new CursoDTO(1L));
+                .thenReturn(new CursoDTO(1L, 1L));
 
         // Simula disciplinas pertencentes ao curso
         when(disciplinaClient.buscarPorCurso(1L))
@@ -133,7 +138,7 @@ class ProjetoControllerIntegrationTest {
 
         assertEquals("EM_ANALISE", projetoSalvo.getStatusProjeto().name());
 
-        verify(professorClient).buscarPorId(10L, token);
+        verify(professorClient, times(2)).buscarPorId(10L, token);
     }
 
     @Test

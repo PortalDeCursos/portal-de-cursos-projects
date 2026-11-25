@@ -1,15 +1,14 @@
 
 package br.edu.ifrn.nc.portaltads.projects.business;
 
-import br.edu.ifrn.nc.portaltads.projects.business.dto.CursoDTO;
-import br.edu.ifrn.nc.portaltads.projects.business.dto.DisciplinaDTO;
-import br.edu.ifrn.nc.portaltads.projects.business.dto.ProfessorDTO;
+import br.edu.ifrn.nc.portaltads.projects.business.dto.*;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.AutorProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoProfessorRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.request.ProjetoRequestDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.dto.response.ProjetoResponseDTO;
 import br.edu.ifrn.nc.portaltads.projects.business.mapper.ProjetoMapper;
 import br.edu.ifrn.nc.portaltads.projects.business.messaging.ProjetoEventPublisher;
+import br.edu.ifrn.nc.portaltads.projects.client.CampusClient;
 import br.edu.ifrn.nc.portaltads.projects.client.CursoClient;
 import br.edu.ifrn.nc.portaltads.projects.client.DisciplinaClient;
 import br.edu.ifrn.nc.portaltads.projects.client.ProfessorClient;
@@ -52,6 +51,9 @@ class ProjetoServiceTest {
 
     @Mock
     private CursoClient cursoClient;
+
+    @Mock
+    private CampusClient campusClient;
 
     @Mock
     private DisciplinaClient disciplinaClient;
@@ -186,16 +188,23 @@ class ProjetoServiceTest {
         dto.setProfessores(List.of(professorDTO));
         dto.setDocumentos(null);
 
+        when(campusClient.buscarPorID(1L))
+                .thenReturn(new CampusDTO(1L));
+
         when(disciplinaClient.buscarPorCurso(1L))
                 .thenReturn(List.of(new DisciplinaDTO(1L, 1L)));
 
         when(cursoClient.buscarPorID(1L))
-                .thenReturn(new CursoDTO(1L));
+                .thenReturn(new CursoDTO(1L, 1L));
 
         when(professorClient.buscarPorId(1L, "Bearer token-teste"))
                 .thenReturn(new ProfessorDTO(
                         1L,
-                        null,
+                        new UsuarioDTO(
+                                1L,
+                                "Professor Teste",
+                                "professor@teste.com"
+                        ),
                         1L
                 ));
 
@@ -247,7 +256,7 @@ class ProjetoServiceTest {
         dto.setDisciplinaIds(List.of(1L));
 
         when(cursoClient.buscarPorID(1L))
-                .thenReturn(new CursoDTO(1L));
+                .thenReturn(new CursoDTO(1L, 1L));
 
         when(disciplinaClient.buscarPorCurso(1L))
                 .thenReturn(List.of(new DisciplinaDTO(1L, 1L)));
@@ -282,7 +291,7 @@ class ProjetoServiceTest {
         dto.setDisciplinaIds(List.of(1L));
 
         when(cursoClient.buscarPorID(1L))
-                .thenReturn(new CursoDTO(1L));
+                .thenReturn(new CursoDTO(1L, 1L));
 
         when(disciplinaClient.buscarPorCurso(1L))
                 .thenReturn(List.of(new DisciplinaDTO(1L, 1L)));
@@ -344,8 +353,11 @@ class ProjetoServiceTest {
         dto.setProfessores(List.of(professorDTO));
         dto.setDocumentos(null);
 
+        when(campusClient.buscarPorID(1L))
+                .thenReturn(new CampusDTO(1L));
+
         when(cursoClient.buscarPorID(1L))
-                .thenReturn(new CursoDTO(1L));
+                .thenReturn(new CursoDTO(1L, 1L));
 
         when(disciplinaClient.buscarPorCurso(1L))
                 .thenReturn(List.of(
@@ -354,7 +366,15 @@ class ProjetoServiceTest {
                 ));
 
         when(professorClient.buscarPorId(1L, "Bearer token-teste"))
-                .thenReturn(new ProfessorDTO(1L, null, 1L));
+                .thenReturn(new ProfessorDTO(
+                        1L,
+                        new UsuarioDTO(
+                                1L,
+                                "Professor Teste",
+                                "professor@teste.com"
+                        ),
+                        1L
+                ));
 
         when(projetoRepository.existsByNome(dto.getNome()))
                 .thenReturn(false);
